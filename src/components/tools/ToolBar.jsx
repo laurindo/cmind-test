@@ -1,8 +1,11 @@
 import React from "react";
+// core components
+import UL from "../core/ul";
+import LI from "../core/li";
+// components
 import CircleTool from "./CircleTool";
 import HelpTool from "./HelpTool";
 import EraseTool from "./EraseTool";
-import "./style.css";
 
 class ToolBar extends React.Component {
     constructor(props) {
@@ -26,18 +29,18 @@ class ToolBar extends React.Component {
     render() {
         const {tools = this.defaultTools, selected, onClick} = this.props;
         return (
-            <ul>
+            <UL>
                 {tools.map((tool, index) => (
-                    <li
+                    <LI
                         key={index}
                         value={tool}
                         className={selected === tool ? "selected" : ""}
                         onClick={() => onClick(tool)}
                     >
                         {React.isValidElement(tool) ? <tool /> : this.displayTool(tool)}
-                    </li>
+                    </LI>
                 ))}
-            </ul>
+            </UL>
         );
     }
 }

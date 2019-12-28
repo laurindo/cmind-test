@@ -2,98 +2,212 @@ import React from "react";
 import Circle from "./Circle";
 import Line from "./Line";
 import Parallelogram from "../../utils/Paralelogram";
+import Shape from "./Shape";
+import ErrorLabel from "../labels/error";
 
 class Canvas extends React.Component {
-    constructor(props) {
-        super(props);
-        this.parallelogram = new Parallelogram();
-        this.line = new Line();
-        this.state = {
-            positions: [],
-            number: 0
-        };
-    }
+	constructor(props) {
+		super(props);
+		this.startX = null;
+		this.startY = null;
+		this.dragok = false;
+		this.parallelogram = new Parallelogram();
+		this.line = new Line();
+		this.circle = new Circle();
+		this.shape = new Shape();
+		this.defaultState = this.state = {
+			positions: [],
+			number: 0
+		};
+	}
 
-    componentDidMount() {
-        this.canvas = document.getElementById(this.props.id);
-    }
+	componentDidMount() {
+		this.canvas = document.getElementById(this.props.id);
+		this.canvas.onmousedown = this.mouseDown.bind(this);
+		this.canvas.onmouseup = this.mouseUp.bind(this);
+		this.canvas.onmousemove = this.mouseMove.bind(this);
+	}
 
-    getContext = () => this.canvas.getContext('2d');
+	mouseDown(e) {
+		e.preventDefault();
+		e.stopPropagation();
+		const coords = this.shape.getCanvasCoordinate(e, this.canvas);
+		let mx = coords.x;
+		let my = coords.y;
+		for (let i = 0; i < this.state.positions.length; i++) {
+			const p = this.state.positions;
+			let s = p[i];
+			let dx = s.x - mx;
+			let dy = s.y - my;
+			if (dx * dx + dy * dy < 11 * 11) {
+				this.dragok = true;
+				this.index = i;
+				this.setState({
+					positions: this.state.positions.map((p, idx) => {
+						if (idx === i) p.isDragging = true;
+						return p;
+					})
+				});
+			}
+			this.startX = mx;
+			this.startY = my;
+		}
+	}
 
-    drawCentralPoint = e => {
-        Circle.draw(e, {
-            context: this.getContext(),
-            coords: this.parallelogram.getCentralPoint(this.state.positions),
-            strokeColor: "yellow",
-            fill: "yellow",
-            radius: 5.5
-        });
-    };
+	mouseMove(e) {
+		e.preventDefault();
+		e.stopPropagation();
+		if (this.dragok) {
+			const coords = this.shape.getCanvasCoordinate(e, this.canvas);
+			let mx = coords.x;
+			let my = coords.y;
+			let dx = mx - this.startX;
+			let dy = my - this.startY;
 
-    drawLastPoint = e => {
-        if (this.state.positions.length === this.props.limitDraw) {
-            //this.setState()
-            const coords = this.parallelogram.addLastPoint(this.state.positions);
-            const areaList = this.parallelogram.getArea(this.addPosition(coords));
-            this.line.draw(this.getContext(), areaList);
-            const newCoords = Circle.draw(e, {
-                context: this.getContext(),
-                coords,
-            });
-            this.storePosition(e, newCoords, this.drawCentralPoint.bind(this));
-        }
-    };
+			const p = this.state.positions;
+			let s = p[this.index];
+			if (s.isDragging) {
+				s.x += dx;
+				s.y += dy;
+			}
+			this.redraw(e);
+			this.startX = mx;
+			this.startY = my;
+		}
+	}
 
-    storePosition = (e, coords, callback) => {
-        this.setState({
-            error: "",
-            positions: this.addPosition(coords),
-        }, () => callback(e, coords));
-    };
+	mouseUp(e) {
+		e.preventDefault();
+		e.stopPropagation();
+		this.dragok = false;
+		if (this.state.positions.length - 1 === this.props.limitDraw) {
+			this.drawCentralPoint(e);
+		}
+	}
 
-    addPosition = coords => {
-        return [
-            ...this.state.positions,
-            {
-                x: coords.x,
-                y: coords.y
-            }
-        ]
-    };
+	redraw(e) {
+		this.clean(true);
+		const newCircleCoords = [];
+		const currentCoords = this.shape.getCanvasCoordinate(e, this.canvas);
+		for (let i = 0; i < this.state.positions.length; i++) {
+			newCircleCoords.push(this.circle.draw(e,{
+				canvas: this.canvas,
+				context: this.getContext(),
+				radius: 11,
+				coords: {
+					x: this.index === i ? currentCoords.x : this.state.positions[i].x,
+					y: this.index === i ? currentCoords.y : this.state.positions[i].y,
+				}
+			}));
+		}
+		this.setState({
+			positions: this.state.positions.map((p, i) => {
+				p.x = newCircleCoords[i].x;
+				p.y = newCircleCoords[i].y;
+				return p;
+			})
+		}, () => {
+			const coords = this.parallelogram.getLastCoords(this.state.positions);
+			const areaList = this.parallelogram.getArea(this.state.positions);
+			this.line.draw(this.getContext(), areaList);
+		});
+	}
 
-    checkLimitToDraw = () => this.state.positions.length < this.props.limitDraw;
+	drawCentralPoint = e => {
+		this.circle.draw(e, {
+			context: this.getContext(),
+			coords: this.parallelogram.getCentralPoint(this.state.positions),
+			strokeColor: "yellow",
+			fill: "yellow",
+			radius: 5.5
+		});
+	};
 
-    draw = (e) => {
-        const {value, radius} = this.props;
-        if (value.tool === "circle" && this.checkLimitToDraw()) {
-            const options = {
-                canvas: this.canvas,
-                context: this.getContext(),
-                radius,
-                storePosition: this.storePosition
-            };
-            const coords = Circle.draw(e, options);
-            this.storePosition(e, coords, this.drawLastPoint);
-            Circle.takeSnapShot(options.context, options.canvas);
-        } else if (value.tool === "erase") {
-            Circle.restoreSnapshot(this.context);
-        } else if (value.tool === "") {
-            this.setState({
-                error: "Please, select one tool first"
-            });
-        }
-    };
+	clean = ignoreCleanState => {
+		this.parallelogram = new Parallelogram();
+		this.line = new Line();
+		!ignoreCleanState && this.setState({...this.defaultState});
+		this.getContext().clearRect(0, 0, this.props.width, this.props.height);
+	};
 
-    render() {
-        const {id, width = 500, height = 500, limitDraw} = this.props;
-        return (
-            <div>
-                <p className="error">{this.state.error}</p>
-                <canvas id={id} width={width} height={height} onClick={this.draw}/>
-                <p className="limitDraw">You can draw only {limitDraw} times</p>
-            </div>
-        );
-    }
+	draw = (e) => {
+		const {value, radius} = this.props;
+		if (value.tool === "circle" && this.checkLimitToDraw()) {
+			const options = {
+				canvas: this.canvas,
+				context: this.getContext(),
+				radius,
+				storePosition: this.storePosition
+			};
+			const coords = this.circle.draw(e, options);
+			this.storePosition(e, coords, this.drawLastPoint);
+		} else if (value.tool === "erase") {
+			this.clean();
+		} else if (value.tool === "") {
+			this.setState({
+				error: "Please, select one tool first"
+			});
+		}
+	};
+
+	checkLimitToDraw = () => this.state.positions.length < this.props.limitDraw;
+
+	getContext = () => this.canvas.getContext('2d');
+
+	storePosition = (e, coords, callback) => {
+		this.setState({
+			error: "",
+			positions: this.addPosition(coords),
+		}, () => callback(e, coords));
+	};
+
+	addPosition = coords => {
+		return [
+			...this.state.positions,
+			{
+				x: coords.x,
+				y: coords.y,
+				isDragging: false
+			}
+		]
+	};
+
+	updatePosition = coords => {
+		debugger;
+		this.setState({
+			error: "",
+			positions: this.state.positions.map((p, i) => {
+				if (this.index === i) {
+					p.x = coords.x;
+					p.y = coords.y;
+				}
+				return p;
+			}),
+		});
+	};
+
+	drawLastPoint = e => {
+		if (this.state.positions.length === this.props.limitDraw) {
+			const coords = this.parallelogram.getLastCoords(this.state.positions);
+			const areaList = this.parallelogram.getArea(this.addPosition(coords));
+			this.line.draw(this.getContext(), areaList);
+			const newCoords = this.circle.draw(e, {
+				context: this.getContext(),
+				coords,
+			});
+			this.storePosition(e, newCoords, this.drawCentralPoint.bind(this));
+		}
+	};
+
+	render() {
+		const {id, value, width = 500, height = 500} = this.props;
+		return (
+			<div className={value.tool === "erase" ? "clearCursor" : ""}>
+				<ErrorLabel message={this.state.error}/>
+				<canvas id={id} width={width} height={height} onClick={this.draw}/>
+			</div>
+		);
+	}
 }
 
 export default Canvas;
