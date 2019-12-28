@@ -172,20 +172,6 @@ class Canvas extends React.Component {
 		]
 	};
 
-	updatePosition = coords => {
-		debugger;
-		this.setState({
-			error: "",
-			positions: this.state.positions.map((p, i) => {
-				if (this.index === i) {
-					p.x = coords.x;
-					p.y = coords.y;
-				}
-				return p;
-			}),
-		});
-	};
-
 	drawLastPoint = e => {
 		if (this.state.positions.length === this.props.limitDraw) {
 			const coords = this.parallelogram.getLastCoords(this.state.positions);
