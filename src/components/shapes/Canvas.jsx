@@ -10,7 +10,7 @@ class Canvas extends React.Component {
 		super(props);
 		this.startX = null;
 		this.startY = null;
-		this.dragok = false;
+		this.isDragging = false;
 		this.parallelogram = new Parallelogram();
 		this.line = new Line();
 		this.circle = new Circle();
@@ -40,8 +40,8 @@ class Canvas extends React.Component {
 			let dx = s.x - mx;
 			let dy = s.y - my;
 			if (dx * dx + dy * dy < 11 * 11) {
-				this.dragok = true;
-				this.index = i;
+				this.isDragging = true;
+				this.currentNode = i;
 				this.setState({
 					positions: this.state.positions.map((p, idx) => {
 						if (idx === i) p.isDragging = true;
@@ -57,18 +57,17 @@ class Canvas extends React.Component {
 	mouseMove(e) {
 		e.preventDefault();
 		e.stopPropagation();
-		if (this.dragok) {
+		if (this.isDragging) {
 			const coords = this.shape.getCanvasCoordinate(e, this.canvas);
 			let mx = coords.x;
 			let my = coords.y;
 			let dx = mx - this.startX;
 			let dy = my - this.startY;
 
-			const p = this.state.positions;
-			let s = p[this.index];
-			if (s.isDragging) {
-				s.x += dx;
-				s.y += dy;
+			let position = this.state.positions[this.currentNode];
+			if (position.isDragging) {
+				position.x += dx;
+				position.y += dy;
 			}
 			this.redraw(e);
 			this.startX = mx;
@@ -79,7 +78,7 @@ class Canvas extends React.Component {
 	mouseUp(e) {
 		e.preventDefault();
 		e.stopPropagation();
-		this.dragok = false;
+		this.isDragging = false;
 		if (this.state.positions.length - 1 === this.props.limitDraw) {
 			this.drawCentralPoint(e);
 		}
@@ -90,13 +89,13 @@ class Canvas extends React.Component {
 		const newCircleCoords = [];
 		const currentCoords = this.shape.getCanvasCoordinate(e, this.canvas);
 		for (let i = 0; i < this.state.positions.length; i++) {
-			newCircleCoords.push(this.circle.draw(e,{
+			newCircleCoords.push(this[this.props.value.tool].draw(e,{
 				canvas: this.canvas,
 				context: this.getContext(),
 				radius: 11,
 				coords: {
-					x: this.index === i ? currentCoords.x : this.state.positions[i].x,
-					y: this.index === i ? currentCoords.y : this.state.positions[i].y,
+					x: this.currentNode === i ? currentCoords.x : this.state.positions[i].x,
+					y: this.currentNode === i ? currentCoords.y : this.state.positions[i].y,
 				}
 			}));
 		}
@@ -114,7 +113,7 @@ class Canvas extends React.Component {
 	}
 
 	drawCentralPoint = e => {
-		this.circle.draw(e, {
+		this[this.props.value.tool].draw(e, {
 			context: this.getContext(),
 			coords: this.parallelogram.getCentralPoint(this.state.positions),
 			strokeColor: "yellow",
@@ -139,7 +138,7 @@ class Canvas extends React.Component {
 				radius,
 				storePosition: this.storePosition
 			};
-			const coords = this.circle.draw(e, options);
+			const coords = this[value.tool].draw(e, options);
 			this.storePosition(e, coords, this.drawLastPoint);
 		} else if (value.tool === "erase") {
 			this.clean();
@@ -177,7 +176,7 @@ class Canvas extends React.Component {
 			const coords = this.parallelogram.getLastCoords(this.state.positions);
 			const areaList = this.parallelogram.getArea(this.addPosition(coords));
 			this.line.draw(this.getContext(), areaList);
-			const newCoords = this.circle.draw(e, {
+			const newCoords = this[this.props.value.tool].draw(e, {
 				context: this.getContext(),
 				coords,
 			});

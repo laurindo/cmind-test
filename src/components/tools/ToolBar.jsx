@@ -3,9 +3,11 @@ import React from "react";
 import UL from "../core/ul";
 import LI from "../core/li";
 // components
-import CircleTool from "./CircleTool";
-import HelpTool from "./HelpTool";
-import EraseTool from "./EraseTool";
+import Tool from "./Tool";
+// icons
+import circleIcon from "../../assets/circle-outline.svg";
+import eraseIcon from "../../assets/erase.svg";
+import helpIcon from "../../assets/help.svg";
 
 class ToolBar extends React.Component {
     constructor(props) {
@@ -16,11 +18,11 @@ class ToolBar extends React.Component {
     displayTool(tool) {
         switch (tool) {
             case "circle":
-                return <CircleTool/>;
+                return <Tool img={circleIcon}/>;
             case "help":
-                return <HelpTool/>;
+                return <Tool img={eraseIcon}/>;
             case "erase":
-                return <EraseTool/>;
+                return <Tool img={helpIcon}/>;
             default:
                 return null;
         }
