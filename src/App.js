@@ -1,5 +1,4 @@
 import React from 'react';
-import './App.css';
 import Drawing from "./container/Drawing";
 
 function App() {

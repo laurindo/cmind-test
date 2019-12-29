@@ -1,8 +1,7 @@
-import React from "react";
 import styled from "styled-components";
 import colors from "./colors";
 
-const LI = styled.ul`
+const LI = styled.li`
     display: flex;
     justify-content: center;
     align-items: center;

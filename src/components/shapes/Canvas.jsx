@@ -89,7 +89,7 @@ class Canvas extends React.Component {
 		const newCircleCoords = [];
 		const currentCoords = this.shape.getCanvasCoordinate(e, this.canvas);
 		for (let i = 0; i < this.state.positions.length; i++) {
-			newCircleCoords.push(this[this.props.value.tool].draw(e,{
+			newCircleCoords.push(this[this.props.value.tool].draw(e, {
 				canvas: this.canvas,
 				context: this.getContext(),
 				radius: 11,
@@ -106,7 +106,6 @@ class Canvas extends React.Component {
 				return p;
 			})
 		}, () => {
-			const coords = this.parallelogram.getLastCoords(this.state.positions);
 			const areaList = this.parallelogram.getArea(this.state.positions);
 			this.line.draw(this.getContext(), areaList);
 		});
